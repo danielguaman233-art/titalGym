@@ -1,0 +1,7 @@
+{
+  "name": "TitanGym Management System",
+  "description": "A comprehensive gym management platform for tracking customers, employee attendance with geolocation, and AI-powered business insights.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
