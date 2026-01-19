@@ -1,141 +1,102 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, 
-  UserPlus, 
-  ClipboardList, 
-  MessageSquare,
-  ArrowUpRight,
-  Sparkles,
-  Calendar,
-  CheckSquare
+  Users, UserPlus, ClipboardList, MessageSquare, Sparkles, Calendar, CheckSquare, Flame, Trophy, Activity as ActivityIcon
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { analyzeSuggestions } from '../services/geminiService';
-import { Suggestion, Activity } from '../types';
+import { Suggestion, Activity, User } from '../types';
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  user: User;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ user }) => {
+  const isClient = user.role === 'client';
+  
   const [suggestions] = useState<Suggestion[]>([
     { id: '1', customerId: 'c1', customerName: 'Juan Perez', text: 'Me gustaría que abrieran a las 5 AM', date: '2023-10-20', category: 'Horario' },
     { id: '2', customerId: 'c2', customerName: 'Ana Gomez', text: 'Faltan mancuernas de 10kg', date: '2023-10-21', category: 'Equipo' },
-    { id: '3', customerId: 'c3', customerName: 'Luis Rios', text: 'El aire acondicionado no enfría suficiente', date: '2023-10-22', category: 'Infraestructura' },
   ]);
 
   const [activities] = useState<Activity[]>([
-    { id: '1', title: 'Mantenimiento de máquinas cardio', dueDate: 'Hoy', completed: false },
-    { id: '2', title: 'Revisión de inventario de suplementos', dueDate: 'Mañana', completed: false },
-    { id: '3', title: 'Entrevista para nuevo instructor', dueDate: '25 Oct', completed: true },
+    { id: '1', title: 'Entrenamiento de Pierna', dueDate: 'Hoy 18:00', completed: false },
+    { id: '2', title: 'Cardio LISS 30min', dueDate: 'Hoy 19:00', completed: false },
   ]);
 
-  const [aiInsight, setAiInsight] = useState<string>('Analizando sugerencias con IA...');
+  const [aiInsight, setAiInsight] = useState<string>('Cargando motivación...');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     const fetchAIAnalysis = async () => {
       setIsAnalyzing(true);
-      const analysis = await analyzeSuggestions(suggestions);
-      setAiInsight(analysis);
+      const prompt = isClient 
+        ? "Genera una frase motivadora de 2 líneas para un atleta de gimnasio que lleva 12 días entrenando sin parar."
+        : "Analiza sugerencias de clientes: " + suggestions.map(s => s.text).join(', ');
+      
+      const analysis = await analyzeSuggestions(suggestions); // Nota: En una app real pasaríamos el prompt custom
+      setAiInsight(isClient ? "¡Sigue así, Titán! Estás en el 10% superior de consistencia este mes. Tu meta de 20 días está cerca." : analysis);
       setIsAnalyzing(false);
     };
     fetchAIAnalysis();
-  }, [suggestions]);
-
-  const chartData = [
-    { name: 'Lun', ingresos: 45 },
-    { name: 'Mar', ingresos: 52 },
-    { name: 'Mie', ingresos: 48 },
-    { name: 'Jue', ingresos: 61 },
-    { name: 'Vie', ingresos: 55 },
-    { name: 'Sab', ingresos: 40 },
-    { name: 'Dom', ingresos: 25 },
-  ];
+  }, [isClient, suggestions]);
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard General</h2>
-          <p className="text-slate-500 text-sm">Resumen para hoy, {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-        </div>
-        <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200 flex items-center gap-2 text-slate-600 font-medium w-fit">
-          <Calendar size={18} />
-          <span className="text-sm">Filtrar Periodo</span>
+          <h2 className="text-3xl font-black text-slate-900 italic tracking-tighter uppercase">
+            {isClient ? `¡Hola, ${user.name.split(' ')[0]}!` : 'Resumen Operativo'}
+          </h2>
+          <p className="text-slate-500 font-medium">Hoy es {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
         </div>
       </header>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <KpiCard 
-          icon={<Users size={24} />} 
-          label="Ingresos Hoy" 
-          value="42" 
-          trend="+12% vs ayer" 
-          color="emerald" 
-        />
-        <KpiCard 
-          icon={<UserPlus size={24} />} 
-          label="Inscritos Hoy" 
-          value="8" 
-          trend="Meta: 10" 
-          color="blue" 
-        />
-        <KpiCard 
-          icon={<ClipboardList size={24} />} 
-          label="Pendientes" 
-          value="5" 
-          trend="Prioridad Alta" 
-          color="amber" 
-        />
-        <KpiCard 
-          icon={<MessageSquare size={24} />} 
-          label="Sugerencias" 
-          value="3" 
-          trend="Nuevas críticas" 
-          color="rose" 
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {isClient ? (
+          <>
+            <KpiCard icon={<Flame size={24} />} label="Racha Actual" value={`${user.gymDays || 0} Días`} trend="¡Nivel Fuego!" color="rose" />
+            <KpiCard icon={<Trophy size={24} />} label="Nivel" value="Titán Plata" trend="5 días para Oro" color="amber" />
+            <KpiCard icon={<ActivityIcon size={24} />} label="Calorías Est." value="2,450" trend="Promedio diario" color="emerald" />
+            <KpiCard icon={<Calendar size={24} />} label="Próximo Pago" value="15 Nov" trend="Plan VIP" color="blue" />
+          </>
+        ) : (
+          <>
+            <KpiCard icon={<Users size={24} />} label="Ingresos Hoy" value="42" trend="+12% vs ayer" color="emerald" />
+            <KpiCard icon={<UserPlus size={24} />} label="Inscritos Hoy" value="8" trend="Meta: 10" color="blue" />
+            <KpiCard icon={<ClipboardList size={24} />} label="Pendientes Staff" value="5" trend="Prioridad Alta" color="amber" />
+            <KpiCard icon={<MessageSquare size={24} />} label="Sugerencias" value="3" trend="Por leer" color="rose" />
+          </>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-        {/* Chart */}
-        <div className="lg:col-span-2 bg-white p-4 sm:p-8 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-lg sm:text-xl font-bold text-slate-900">Flujo Semanal</h3>
-          </div>
-          <div className="h-[250px] sm:h-[300px] w-full">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+          <h3 className="text-xl font-black text-slate-900 mb-8 uppercase tracking-tighter italic">Consistencia Mensual</h3>
+          <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
+              <BarChart data={[{name:'Sem 1', v:20}, {name:'Sem 2', v:35}, {name:'Sem 3', v:45}, {name:'Sem 4', v:30}]}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <Tooltip 
-                  cursor={{fill: '#f8fafc'}}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                />
-                <Bar dataKey="ingresos" radius={[6, 6, 0, 0]}>
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index === 3 ? '#10b981' : '#e2e8f0'} />
-                  ))}
-                </Bar>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
+                <Tooltip cursor={{fill: '#f8fafc'}} />
+                <Bar dataKey="v" radius={[10, 10, 0, 0]} fill="#10b981" />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Activities */}
-        <div className="bg-white p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg sm:text-xl font-bold text-slate-900">Actividades</h3>
-            <button className="text-emerald-600 font-bold text-sm hover:underline">Ver todo</button>
-          </div>
+        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+          <h3 className="text-xl font-black text-slate-900 mb-6 uppercase tracking-tighter italic">Mis Objetivos</h3>
           <div className="space-y-4">
             {activities.map(activity => (
-              <div key={activity.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-                <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${activity.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'}`}>
-                  {activity.completed && <CheckSquare size={12} />}
+              <div key={activity.id} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-transparent hover:border-emerald-500/20 transition-all">
+                <div className="w-6 h-6 rounded border-2 border-emerald-500 flex items-center justify-center shrink-0">
+                  {activity.completed && <CheckSquare size={16} className="text-emerald-500" />}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`font-semibold text-sm truncate ${activity.completed ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{activity.title}</p>
-                  <span className="text-xs text-slate-400">{activity.dueDate}</span>
+                <div>
+                  <p className="font-bold text-slate-800">{activity.title}</p>
+                  <p className="text-xs text-slate-400">{activity.dueDate}</p>
                 </div>
               </div>
             ))}
@@ -143,21 +104,17 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* AI Panel */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-xl shadow-emerald-500/20 text-white relative overflow-hidden">
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
-              <Sparkles size={20} />
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-emerald-400">
+              <Sparkles size={24} />
             </div>
-            <h3 className="text-lg sm:text-xl font-bold">Análisis Inteligente</h3>
+            <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">Titan AI Assistant</h3>
           </div>
-          <div className="bg-white/10 backdrop-blur-md p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-white/20">
-            {isAnalyzing ? (
-              <p className="animate-pulse italic opacity-80">Escaneando...</p>
-            ) : (
-              <p className="text-sm sm:text-base leading-relaxed opacity-95">{aiInsight}</p>
-            )}
+          <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 text-slate-200">
+            {isAnalyzing ? <p className="animate-pulse">Consultando al Oráculo...</p> : <p className="leading-relaxed font-medium">{aiInsight}</p>}
           </div>
         </div>
       </div>
@@ -166,27 +123,22 @@ const Dashboard: React.FC = () => {
 };
 
 const KpiCard = ({ icon, label, value, trend, color }: any) => {
-  const colorMap: any = {
+  const colors: any = {
     emerald: 'bg-emerald-500/10 text-emerald-600',
     blue: 'bg-blue-500/10 text-blue-600',
     amber: 'bg-amber-500/10 text-amber-600',
     rose: 'bg-rose-500/10 text-rose-600'
   };
-
   return (
-    <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-100 group">
-      <div className="flex items-center gap-4">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorMap[color]}`}>
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs font-medium text-slate-500 truncate">{label}</p>
-          <h3 className="text-xl sm:text-2xl font-bold text-slate-900">{value}</h3>
+    <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+      <div className="flex items-center gap-4 mb-4">
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colors[color]}`}>{icon}</div>
+        <div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{label}</p>
+          <h3 className="text-2xl font-black text-slate-900 tracking-tighter">{value}</h3>
         </div>
       </div>
-      <div className="mt-4 flex items-center text-[10px] sm:text-xs font-bold text-slate-500 bg-slate-50 w-fit px-2 py-1 rounded-lg">
-        {trend}
-      </div>
+      <div className="px-3 py-1 bg-slate-50 rounded-lg text-[10px] font-black text-slate-500 uppercase tracking-widest w-fit">{trend}</div>
     </div>
   );
 };
